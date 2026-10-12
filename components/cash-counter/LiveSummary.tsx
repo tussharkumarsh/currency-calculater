@@ -1,4 +1,4 @@
-import { RotateCcw, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { amountInWords } from "@/lib/amount-in-words";
 import { formatCount, formatINR } from "@/lib/format-currency";
 import type { CashTotals, MessageLanguage } from "@/types/cash-counter";
@@ -7,11 +7,9 @@ interface LiveSummaryProps {
   totals: CashTotals;
   language: MessageLanguage;
   onLoadExample: () => void;
-  canClear: boolean;
-  onClear: () => void;
 }
 
-export function LiveSummary({ totals, language, onLoadExample, canClear, onClear }: LiveSummaryProps) {
+export function LiveSummary({ totals, language, onLoadExample }: LiveSummaryProps) {
   const empty = totals.grandTotal === 0;
 
   return (
@@ -38,22 +36,11 @@ export function LiveSummary({ totals, language, onLoadExample, canClear, onClear
       </dl>
 
       <div className="mt-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-ink">
-            Breakdown
-            <span className="ml-2 text-xs font-normal text-muted">
-              {totals.denominationsUsed} {totals.denominationsUsed === 1 ? "denomination" : "denominations"} used
-            </span>
-          </h3>
-          <button
-            type="button"
-            onClick={onClear}
-            disabled={!canClear}
-            className="-mr-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-danger-soft hover:text-danger disabled:pointer-events-none disabled:opacity-40"
-          >
-            <RotateCcw className="size-3.5" aria-hidden />
-            Clear all
-          </button>
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="text-sm font-semibold text-ink">Breakdown</h3>
+          <p className="text-xs text-muted">
+            {totals.denominationsUsed} {totals.denominationsUsed === 1 ? "denomination" : "denominations"} used
+          </p>
         </div>
 
         {empty ? (

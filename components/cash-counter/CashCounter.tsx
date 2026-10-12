@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Send, Settings2, Undo2 } from "lucide-react";
+import { RotateCcw, Send, Settings2, Undo2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import {
   SAMPLE_QUANTITIES,
@@ -37,6 +37,8 @@ export function CashCounter() {
   const [cleared, setCleared] = useState<ClearedSnapshot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsKey, setSettingsKey] = useState(0);
+  /** Bumped on Clear all: remounts the entry form so no per-field state (errors, touched) carries over. */
+  const [resetKey, setResetKey] = useState(0);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const customerInputRef = useRef<HTMLInputElement>(null);
@@ -52,6 +54,7 @@ export function CashCounter() {
   const noteLines = totals.lines.filter((line) => line.denomination.kind === "note");
   const coinLines = totals.lines.filter((line) => line.denomination.kind === "coin");
   const canShare = totals.grandTotal > 0;
+  const canClear = canShare || customerNumber !== "";
 
   // Any edit makes earlier "opened"/"copied" feedback stale.
   const updateQuantities = useCallback((updater: (current: Quantities) => Quantities) => {
@@ -82,6 +85,13 @@ export function CashCounter() {
     const timer = setTimeout(() => setNotice(null), 2500);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  // After a reset, bring the cashier back to the first field, ready for the next customer.
+  useEffect(() => {
+    if (resetKey === 0) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    inputRefs.current[0]?.focus({ preventScroll: true });
+  }, [resetKey]);
 
   useEffect(() => {
     if (!cleared) return;
@@ -118,13 +128,13 @@ export function CashCounter() {
   }
 
   function handleClear() {
-    if (!canShare && customerNumber === "") return;
+    if (!canClear) return;
     setCleared({ quantities, customerNumber });
     setQuantities({});
     setCustomerNumber("");
     setNotice(null);
     setShareAttempted(false);
-    inputRefs.current[0]?.focus();
+    setResetKey((k) => k + 1);
   }
 
   function handleUndo() {
@@ -174,21 +184,33 @@ export function CashCounter() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={openSettings}
-              aria-label={settings.defaultNumber ? "Settings" : "Settings — default WhatsApp number not set"}
-              className="relative flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
-            >
-              <Settings2 className="size-[18px]" aria-hidden />
-              {!settings.defaultNumber && (
-                <span aria-hidden className="absolute top-0.5 right-0.5 size-2 rounded-full bg-accent ring-2 ring-surface" />
-              )}
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={!canClear}
+                className="flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-sm font-medium text-ink-soft transition-colors hover:border-danger/40 hover:bg-danger-soft hover:text-danger disabled:pointer-events-none disabled:opacity-40"
+              >
+                <RotateCcw className="size-4" aria-hidden />
+                Clear all
+              </button>
+              <button
+                type="button"
+                onClick={openSettings}
+                aria-label={settings.defaultNumber ? "Settings" : "Settings — default WhatsApp number not set"}
+                className="relative flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
+              >
+                <Settings2 className="size-[18px]" aria-hidden />
+                {!settings.defaultNumber && (
+                  <span aria-hidden className="absolute top-0.5 right-0.5 size-2 rounded-full bg-accent ring-2 ring-surface" />
+                )}
+              </button>
+            </div>
           </header>
 
           <div className="grid gap-5 xl:grid-cols-2 xl:gap-6">
             <DenominationSection
+              key={`note-${resetKey}`}
               kind="note"
               lines={noteLines}
               startIndex={0}
@@ -200,6 +222,7 @@ export function CashCounter() {
               inputRef={registerInput}
             />
             <DenominationSection
+              key={`coin-${resetKey}`}
               kind="coin"
               lines={coinLines}
               startIndex={noteLines.length}
@@ -224,11 +247,10 @@ export function CashCounter() {
             totals={totals}
             language={settings.language}
             onLoadExample={handleLoadExample}
-            canClear={canShare || customerNumber !== ""}
-            onClear={handleClear}
           />
           <div ref={shareSectionRef} className="scroll-mt-4 border-t border-line pt-3">
             <WhatsAppShare
+              key={resetKey}
               customerNumber={customerNumber}
               onCustomerNumberChange={setCustomerNumber}
               customerInputRef={customerInputRef}
@@ -239,6 +261,7 @@ export function CashCounter() {
               onShare={handleShare}
               onCopy={handleCopy}
               onOpenSettings={openSettings}
+              onNewCustomer={handleClear}
             />
           </div>
         </aside>
@@ -278,7 +301,7 @@ export function CashCounter() {
       >
         {cleared && (
           <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-ink py-2 pr-2 pl-4 text-sm text-surface shadow-lg">
-            Calculator cleared
+            Cleared — ready for the next customer
             <button
               type="button"
               onClick={handleUndo}

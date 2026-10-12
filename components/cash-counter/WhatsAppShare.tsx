@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Check, CheckCircle2, Copy, Info, Send, Settings2 } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, CheckCircle2, Copy, Info, Send, Settings2 } from "lucide-react";
 import type { RecipientResult } from "@/lib/whatsapp";
 
 export type ShareNotice =
@@ -21,6 +21,8 @@ interface WhatsAppShareProps {
   onShare: () => void;
   onCopy: () => void;
   onOpenSettings: () => void;
+  /** Clears everything so the next customer's cash can be entered. */
+  onNewCustomer: () => void;
 }
 
 export function WhatsAppShare({
@@ -34,6 +36,7 @@ export function WhatsAppShare({
   onShare,
   onCopy,
   onOpenSettings,
+  onNewCustomer,
 }: WhatsAppShareProps) {
   const [touched, setTouched] = useState(false);
   const customerError = !recipient.ok && recipient.field === "customer" && (touched || showErrors);
@@ -146,13 +149,23 @@ export function WhatsAppShare({
         {!canShare ? (
           <p className="text-center text-muted">Enter at least one denomination to share.</p>
         ) : notice?.kind === "opened" ? (
-          <p className="flex gap-2 rounded-lg bg-accent-soft px-3 py-2 leading-relaxed text-ink-soft">
-            <Info className="mt-px size-3.5 shrink-0 text-accent" aria-hidden />
-            <span>
-              WhatsApp opened for {notice.recipient}. Review the message and press <strong>Send</strong> there to
-              deliver it.
-            </span>
-          </p>
+          <div className="rounded-lg bg-accent-soft px-3 py-2 leading-relaxed text-ink-soft">
+            <p className="flex gap-2">
+              <Info className="mt-px size-3.5 shrink-0 text-accent" aria-hidden />
+              <span>
+                WhatsApp opened for {notice.recipient}. Review the message and press <strong>Send</strong> there to
+                deliver it.
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={onNewCustomer}
+              className="mt-1 ml-5.5 inline-flex items-center gap-1 font-semibold text-accent hover:underline"
+            >
+              Start next customer
+              <ArrowRight className="size-3.5" aria-hidden />
+            </button>
+          </div>
         ) : notice?.kind === "copied" ? (
           <p className="text-center text-success">Summary copied to clipboard.</p>
         ) : notice?.kind === "copy-failed" ? (

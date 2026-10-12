@@ -19,7 +19,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS 
 - Invalid input (letters, signs, decimals, more than 99,999 per row) is rejected as you type, with a short inline message. It can never change the totals.
 - WhatsApp sharing with a recipient preview, customer-number priority, a default number and Indian mobile validation.
 - Copy summary to clipboard.
-- Clear All with an 8-second Undo.
+- **Clear all** (top of the entry panel, always in reach) fully resets for the next customer: every quantity, the customer number and any validation messages are cleared, the page scrolls to the top and the cursor goes to ₹500. An 8-second Undo protects against accidental taps. After sharing, a **Start next customer** shortcut does the same.
 - "Try an example" data for first-time users.
 - Responsive layout:
   - Desktop/tablet: two columns. Fits 1366×768 and 1440×900 without scrolling.
@@ -122,7 +122,7 @@ components/
     CashCounter.tsx       State owner: quantities, customer number, share/copy/clear/undo
     DenominationSection.tsx  Notes or coins group with subtotal
     DenominationRow.tsx   Quantity field, stepper, validation, keyboard handling (memoised)
-    LiveSummary.tsx       Grand total, words, counts, breakdown, Clear all
+    LiveSummary.tsx       Grand total, words, counts, breakdown
     WhatsAppShare.tsx     Customer number, recipient preview, Share + Copy
     CounterSettings.tsx   <dialog>-based settings form
   pwa/ServiceWorkerRegister.tsx
