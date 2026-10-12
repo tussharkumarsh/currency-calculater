@@ -1,5 +1,5 @@
-import { CashCounter } from "@/components/cash-counter/CashCounter";
+import { AppShell } from "@/components/app/AppShell";
 
 export default function Home() {
-  return <CashCounter />;
+  return <AppShell />;
 }

@@ -27,6 +27,28 @@ Built with Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS 
 - Light and dark themes, visible focus states, labelled controls and reduced-motion support.
 - Installable PWA that works offline once it has loaded.
 
+## Calculator mode
+
+A segmented **Cash Counter | Calculator** switch at the top of the page changes modes instantly, with no page reload. Both modes stay loaded in the background, so switching never clears either one: half-counted cash is still there when you come back, and so is a half-finished calculation.
+
+**Discount calculator**
+- Enter the original amount and a discount (0–100%, up to 2 decimals). The result updates as you type.
+- Quick buttons: 5%, 10%, 15%, 20% and Custom.
+- Shows **Customer pays** prominently, plus *You save*, the original amount and the discount.
+- Money is calculated in whole paise, so the answer is exact (₹2,000 at 15% → ₹300 off, ₹1,700 to pay).
+- Invalid values (negative, above 100%, more than 2 decimals) show a message instead of a misleading result.
+- **Copy result** copies a four-line summary. **Clear** resets only the discount fields.
+- *Find the original price from a selling price* (collapsed by default) works backwards: ₹850 after 15% → ₹1,000.
+
+**Standard calculator**
+- Keys: 0–9, decimal point, + − × ÷, %, =, AC, ⌫ and ±. Normal precedence applies (2 + 3 × 4 = 14), and you can chain operations.
+- Results are rounded to 15 significant digits, so 0.1 + 0.2 = 0.3.
+- Dividing by zero shows "Cannot divide by zero" instead of Infinity or NaN.
+- % follows the shop-calculator convention: 2000 − 15% = 1,700, 200 + 10% = 220, 50% = 0.5.
+- Physical keyboard: digits, `+ - * /`, `%`, `.`, Enter or `=`, Backspace, Esc to clear. Keys typed into the discount fields never reach the calculator.
+
+Nothing in Calculator mode is saved or sent anywhere.
+
 ## Getting started
 
 Requires Node.js 20.9 or newer.
@@ -114,10 +136,19 @@ Only rows with a quantity above zero are included. Sharing is disabled while the
 ```
 app/
   layout.tsx            Metadata, viewport, service-worker registration
-  page.tsx              Renders <CashCounter />
+  page.tsx              Renders <AppShell />
   manifest.ts           PWA manifest
   globals.css           Design tokens (light/dark), Tailwind v4 theme
 components/
+  app/
+    AppShell.tsx          Mode switch + both modes (inactive one hidden, state kept)
+    ModeSwitch.tsx        Segmented control (ARIA tabs, arrow-key navigation)
+  calculator/
+    CalculatorMode.tsx    Two-card layout
+    StandardCalculator.tsx  Keypad, display, physical keyboard support
+    DiscountCalculator.tsx  Amount, % presets, results, copy, clear
+    ReverseDiscountCalculator.tsx  Selling price → original price
+    NumberField.tsx       Decimal input with ₹/% affixes and validation
   cash-counter/
     CashCounter.tsx       State owner: quantities, customer number, share/copy/clear/undo
     DenominationSection.tsx  Notes or coins group with subtotal
@@ -134,6 +165,8 @@ lib/
   whatsapp.ts           Recipient resolution, message builder, wa.me URL builder
   settings.ts           localStorage settings store (useSyncExternalStore)
   clipboard.ts          Clipboard with legacy fallback
+  calculator.ts         Calculator reducer, precedence evaluation, display formatting
+  discount-calculations.ts  Paise-exact discount and reverse-discount maths
 types/cash-counter.ts
 public/sw.js            Offline cache (app shell + static assets only)
 scripts/generate-icons.mjs  Regenerates PNG icons via next/og
@@ -144,7 +177,7 @@ Every number on screen and in the WhatsApp message comes from one `calculateTota
 
 ## Testing
 
-`npm test` runs 91 unit tests. They cover:
+`npm test` runs 153 unit tests. The 91 for the Cash Counter cover:
 
 - Calculation rules, including ₹500×4 + ₹200×2 = ₹2,400, empty totals, independent ₹10 note/coin counts, and corrupted or maximum values.
 - Quantity parsing.
@@ -155,6 +188,8 @@ Every number on screen and in the WhatsApp message comes from one `calculateTota
 - The exact message format.
 - URL encoding of `₹`, `×`, `—`, `&`, `#`, spaces and newlines.
 - Settings sanitising.
+
+The other 62 cover the standard calculator (arithmetic, precedence, decimals, %, ±, backspace, divide-by-zero, keyboard mapping) and the discount maths (presets, 0%/100%, paise rounding, reverse calculation, validation messages).
 
 The app was also checked in a real browser at 360, 390, 768, 1024, 1280, 1366 and 1440 px widths. The checks covered live updates, keyboard navigation, invalid input, Clear/Undo, the WhatsApp URL and recipient, Copy, the Hindi message, the ₹2,000 toggle, reload clearing, no horizontal overflow and dark mode.
 
