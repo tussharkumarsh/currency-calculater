@@ -13,6 +13,7 @@ import {
   parseAmount,
   parsePercent,
 } from "@/lib/discount-calculations";
+import { PresetButton, ResultRow as Row } from "./controls";
 import { NumberField } from "./NumberField";
 import { ReverseDiscountCalculator } from "./ReverseDiscountCalculator";
 
@@ -82,7 +83,7 @@ export function DiscountCalculator() {
         <div className="flex items-center gap-2">
           <Tag className="size-4 text-muted" aria-hidden />
           <h2 id="discount-heading" className="text-sm font-semibold text-ink">
-            Discount
+            Customer discount
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -120,7 +121,7 @@ export function DiscountCalculator() {
         <NumberField
           ref={amountInputRef}
           id="discount-amount"
-          label="Original amount"
+          label="Original price"
           prefix="₹"
           size="lg"
           value={amountRaw}
@@ -181,7 +182,7 @@ export function DiscountCalculator() {
           )}
 
           <dl className="mt-3 divide-y divide-line border-t border-line text-sm">
-            <Row label="Original amount" value={result ? formatPaise(result.originalPaise) : "—"} />
+            <Row label="Original price" value={result ? formatPaise(result.originalPaise) : "—"} />
             <Row label="Discount" value={result ? formatBasisPoints(result.percentBp) : "—"} />
             {showEffective && result?.effectivePercent != null && (
               <Row label="Effective discount" value={formatPercent(result.effectivePercent)} />
@@ -208,40 +209,5 @@ export function DiscountCalculator() {
         </div>
       </div>
     </section>
-  );
-}
-
-function PresetButton({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onClick}
-      className={[
-        "h-11 min-w-0 flex-1 rounded-xl border px-1 text-sm font-medium tabular transition-colors",
-        selected
-          ? "border-ink bg-ink text-surface"
-          : "border-line-strong bg-surface text-ink-soft hover:bg-surface-muted hover:text-ink",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-1.5">
-      <dt className="text-muted">{label}</dt>
-      <dd className="font-medium tabular text-ink-soft">{value}</dd>
-    </div>
   );
 }

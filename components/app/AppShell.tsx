@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { CalculatorMode } from "@/components/calculator/CalculatorMode";
+import { DiscountMode } from "@/components/calculator/DiscountMode";
 import { CashCounter } from "@/components/cash-counter/CashCounter";
 import { ModeSwitch, type AppMode } from "./ModeSwitch";
 
 /**
- * Hosts the two modes. Both stay mounted and the inactive one is hidden, so
- * switching never resets either mode's in-memory state and needs no reload.
+ * Hosts the three modes. All stay mounted and only the active one is shown, so
+ * switching never resets any mode's in-memory state and needs no reload.
  * The Cash Counter component itself is rendered unchanged.
  */
 export function AppShell() {
@@ -27,6 +28,10 @@ export function AppShell() {
 
       <div id="panel-calculator" role="tabpanel" aria-labelledby="tab-calculator" hidden={mode !== "calculator"}>
         <CalculatorMode active={mode === "calculator"} />
+      </div>
+
+      <div id="panel-discount" role="tabpanel" aria-labelledby="tab-discount" hidden={mode !== "discount"}>
+        <DiscountMode />
       </div>
     </>
   );

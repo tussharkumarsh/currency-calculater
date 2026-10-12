@@ -27,27 +27,38 @@ Built with Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS 
 - Light and dark themes, visible focus states, labelled controls and reduced-motion support.
 - Installable PWA that works offline once it has loaded.
 
-## Calculator mode
+## Modes
 
-A segmented **Cash Counter | Calculator** switch at the top of the page changes modes instantly, with no page reload. Both modes stay loaded in the background, so switching never clears either one: half-counted cash is still there when you come back, and so is a half-finished calculation.
+A segmented switch at the top of the page offers three modes: **Cash Counter | Calculator | Discount Calculator**. Switching is instant, with no page reload. Every mode and tab stays loaded in the background, so switching never clears anything. Nothing in Calculator or Discount Calculator mode is saved or sent anywhere.
 
-**Discount calculator**
-- Enter the original amount and a discount (0–100%, up to 2 decimals). The result updates as you type.
-- Quick buttons: 5%, 10%, 15%, 20% and Custom.
-- Shows **Customer pays** prominently, plus *You save*, the original amount and the discount.
-- Money is calculated in whole paise, so the answer is exact (₹2,000 at 15% → ₹300 off, ₹1,700 to pay).
-- Invalid values (negative, above 100%, more than 2 decimals) show a message instead of a misleading result.
-- **Copy result** copies a four-line summary. **Clear** resets only the discount fields.
-- *Find the original price from a selling price* (collapsed by default) works backwards: ₹850 after 15% → ₹1,000.
+### Calculator
 
-**Standard calculator**
-- Keys: 0–9, decimal point, + − × ÷, %, =, AC, ⌫ and ±. Normal precedence applies (2 + 3 × 4 = 14), and you can chain operations.
+A standard calculator on its own screen.
+
+- Keys: 0–9, decimal point, + − × ÷, %, =, AC, ⌫ and ±. Normal precedence applies (2 + 3 × 4 = 14).
 - Results are rounded to 15 significant digits, so 0.1 + 0.2 = 0.3.
 - Dividing by zero shows "Cannot divide by zero" instead of Infinity or NaN.
-- % follows the shop-calculator convention: 2000 − 15% = 1,700, 200 + 10% = 220, 50% = 0.5.
-- Physical keyboard: digits, `+ - * /`, `%`, `.`, Enter or `=`, Backspace, Esc to clear. Keys typed into the discount fields never reach the calculator.
+- % follows the shop-calculator convention: 2000 − 15% = 1,700.
+- Physical keyboard: digits, `+ - * /`, `%`, `.`, Enter or `=`, Backspace, Esc to clear.
 
-Nothing in Calculator mode is saved or sent anywhere.
+### Discount Calculator
+
+Two tabs, showing one tool at a time.
+
+**Customer Discount** works out what the customer pays after a percentage discount.
+- Enter the original price and a discount (0–100%), or tap a 5/10/15/20% preset or Custom. Results update as you type.
+- Shows **Customer pays** prominently, plus *You save*, the original price and the discount. Example: ₹100 at 10% → ₹90; ₹2,000 at 15% → ₹1,700.
+- Includes Copy result, a Clear button that resets only this tab, and a collapsible *find the original price from a selling price* tool.
+
+**Selling Price / Margin** works out the price you need to charge to reach a profit target.
+- **Profit margin** (default) is profit as a share of the *selling* price: selling price = cost ÷ (1 − margin). ₹90 cost at 10% → ₹100; ₹200 at 20% → ₹250.
+- **Cost markup** is profit as a share of the *cost*: selling price = cost × (1 + markup). ₹100 cost at 10% → ₹110.
+- The field label changes with the selected method, and a cross-check row shows the equivalent figure in the other method. For example, a 10% margin equals an 11.11% markup.
+- Presets: 5/10/15/20/25% or Custom.
+- Margin must be at least 0% and below 100%. Markup is allowed up to 1000%.
+- When the exact price has fractions of a paisa, it is **rounded up** to the next paisa so the target is never missed. ₹100 at a 10% margin gives ₹111.12, because ₹111.11 would be a 9.999% margin. A note on screen explains this whenever it happens.
+
+All money maths uses whole paise (integers, plus BigInt for the selling-price products), so results are exact.
 
 ## Getting started
 
@@ -141,12 +152,16 @@ app/
   globals.css           Design tokens (light/dark), Tailwind v4 theme
 components/
   app/
-    AppShell.tsx          Mode switch + both modes (inactive one hidden, state kept)
-    ModeSwitch.tsx        Segmented control (ARIA tabs, arrow-key navigation)
+    AppShell.tsx          Mode switch + all three modes (inactive ones hidden, state kept)
+    ModeSwitch.tsx        The three top-level modes
+    SegmentedTabs.tsx     Reusable segmented control (ARIA tabs, arrow/Home/End keys)
   calculator/
-    CalculatorMode.tsx    Two-card layout
+    CalculatorMode.tsx    Calculator mode (standard calculator only)
+    DiscountMode.tsx      Discount Calculator mode with its two tabs
     StandardCalculator.tsx  Keypad, display, physical keyboard support
-    DiscountCalculator.tsx  Amount, % presets, results, copy, clear
+    DiscountCalculator.tsx  Customer Discount tab: price, % presets, results, copy, clear
+    SellingPriceCalculator.tsx  Selling Price / Margin tab: margin or markup pricing
+    controls.tsx          Shared preset button and result row
     ReverseDiscountCalculator.tsx  Selling price → original price
     NumberField.tsx       Decimal input with ₹/% affixes and validation
   cash-counter/
@@ -167,6 +182,7 @@ lib/
   clipboard.ts          Clipboard with legacy fallback
   calculator.ts         Calculator reducer, precedence evaluation, display formatting
   discount-calculations.ts  Paise-exact discount and reverse-discount maths
+  margin-calculations.ts    Selling price from profit margin or cost markup
 types/cash-counter.ts
 public/sw.js            Offline cache (app shell + static assets only)
 scripts/generate-icons.mjs  Regenerates PNG icons via next/og
@@ -177,7 +193,7 @@ Every number on screen and in the WhatsApp message comes from one `calculateTota
 
 ## Testing
 
-`npm test` runs 153 unit tests. The 91 for the Cash Counter cover:
+`npm test` runs 173 unit tests. The 91 for the Cash Counter cover:
 
 - Calculation rules, including ₹500×4 + ₹200×2 = ₹2,400, empty totals, independent ₹10 note/coin counts, and corrupted or maximum values.
 - Quantity parsing.
@@ -189,7 +205,10 @@ Every number on screen and in the WhatsApp message comes from one `calculateTota
 - URL encoding of `₹`, `×`, `—`, `&`, `#`, spaces and newlines.
 - Settings sanitising.
 
-The other 62 cover the standard calculator (arithmetic, precedence, decimals, %, ±, backspace, divide-by-zero, keyboard mapping) and the discount maths (presets, 0%/100%, paise rounding, reverse calculation, validation messages).
+The other 82 cover:
+- The standard calculator: arithmetic, precedence, decimals, %, ±, backspace, divide-by-zero and keyboard mapping.
+- The discount maths: presets, 0%/100%, paise rounding, reverse calculation and validation messages.
+- Selling-price maths: margin vs markup, the 100% limit, zero cost, decimals and round-up behaviour.
 
 The app was also checked in a real browser at 360, 390, 768, 1024, 1280, 1366 and 1440 px widths. The checks covered live updates, keyboard navigation, invalid input, Clear/Undo, the WhatsApp URL and recipient, Copy, the Hindi message, the ₹2,000 toggle, reload clearing, no horizontal overflow and dark mode.
 
