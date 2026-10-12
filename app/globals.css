@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-muted: #f3f2ef;
+  --border: #e5e3de;
+  --border-strong: #d4d1ca;
+  --ink: #1d1d1f;
+  --ink-soft: #3a3a3c;
+  --muted: #6b6b70;
+  --accent: #0a66d8;
+  --accent-soft: rgb(10 102 216 / 0.12);
+  --whatsapp: #157a43;
+  --whatsapp-hover: #11683a;
+  --danger: #b42318;
+  --danger-soft: rgb(180 35 24 / 0.08);
+  --success: #157a43;
+  --shadow: 0 1px 2px rgb(16 16 18 / 0.04), 0 8px 24px -12px rgb(16 16 18 / 0.12);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e10;
+    --surface: #18181b;
+    --surface-muted: #202024;
+    --border: #2b2b30;
+    --border-strong: #3a3a40;
+    --ink: #f5f5f7;
+    --ink-soft: #d4d4d8;
+    --muted: #a1a1a8;
+    --accent: #5aa2ff;
+    --accent-soft: rgb(90 162 255 / 0.18);
+    --whatsapp: #18834a;
+    --whatsapp-hover: #1c9555;
+    --danger: #ff7b6e;
+    --danger-soft: rgb(255 123 110 / 0.12);
+    --success: #4ccf86;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-hover: var(--whatsapp-hover);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --shadow-card: var(--shadow);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI",
+    Inter, Roboto, "Helvetica Neue", "Noto Sans Devanagari", "Nirmala UI", Arial, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: rgb(10 10 12 / 0.35);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
