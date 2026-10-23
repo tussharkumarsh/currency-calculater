@@ -16,7 +16,7 @@ import { formatCount, formatINR } from "@/lib/format-currency";
 import { getServerSettingsSnapshot, getSettingsSnapshot, saveSettings, subscribeSettings } from "@/lib/settings";
 import { buildSummaryMessage, buildWhatsAppUrl, formatMessageDate, resolveRecipient } from "@/lib/whatsapp";
 import type { CounterSettings as Settings, Quantities } from "@/types/cash-counter";
-import { BillChange, changeHeadline } from "./BillChange";
+import { BillAmountField, ChangeSummary, changeHeadline } from "./BillChange";
 import { CounterSettings } from "./CounterSettings";
 import { DenominationSection } from "./DenominationSection";
 import { LiveSummary } from "./LiveSummary";
@@ -86,6 +86,7 @@ export function CashCounter() {
     setBillInput(value);
     setNotice(null);
   }, []);
+  const focusFirstDenomination = useCallback(() => inputRefs.current[0]?.focus(), []);
   const registerInput = useCallback((index: number, el: HTMLInputElement | null) => {
     inputRefs.current[index] = el;
   }, []);
@@ -184,7 +185,8 @@ export function CashCounter() {
 
   return (
     <div className="min-h-dvh pb-28 md:pb-0">
-      <main className="mx-auto grid max-w-[1240px] items-start gap-4 px-4 py-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-5 lg:py-5">
+      {/* ~62/38 split on desktop: the entry panel on the left, results and sharing on the right. */}
+      <main className="mx-auto grid max-w-[1320px] items-start gap-4 px-4 py-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:grid-cols-[minmax(0,1.6fr)_minmax(340px,1fr)] lg:gap-5 lg:py-5">
         <div className="min-w-0 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5">
           <header className="mb-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -227,6 +229,13 @@ export function CashCounter() {
             </div>
           </header>
 
+          <BillAmountField
+            value={billInput}
+            onChange={handleBillChange}
+            error={bill.status === "invalid" ? bill.error : null}
+            onEnter={focusFirstDenomination}
+          />
+
           <div className="grid gap-5 xl:grid-cols-2 xl:gap-6">
             <DenominationSection
               key={`note-${resetKey}`}
@@ -267,12 +276,7 @@ export function CashCounter() {
             language={settings.language}
             onLoadExample={handleLoadExample}
           >
-            <BillChange
-              value={billInput}
-              onChange={handleBillChange}
-              error={bill.status === "invalid" ? bill.error : null}
-              result={change}
-            />
+            <ChangeSummary result={change} />
           </LiveSummary>
           <div ref={shareSectionRef} className="scroll-mt-4 border-t border-line pt-3">
             <WhatsAppShare
@@ -293,7 +297,7 @@ export function CashCounter() {
         </aside>
       </main>
 
-      <footer className="mx-auto max-w-[1240px] px-4 pb-6 text-center text-xs text-muted sm:px-6">
+      <footer className="mx-auto max-w-[1320px] px-4 pb-6 text-center text-xs text-muted sm:px-6">
         Private by design: everything is calculated on this device and nothing is stored or uploaded.
       </footer>
 
