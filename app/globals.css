@@ -16,6 +16,9 @@
   --danger: #b42318;
   --danger-soft: rgb(180 35 24 / 0.08);
   --success: #157a43;
+  --success-soft: rgb(21 122 67 / 0.08);
+  --warning: #b54708;
+  --warning-soft: rgb(181 71 8 / 0.08);
   --shadow: 0 1px 2px rgb(16 16 18 / 0.04), 0 8px 24px -12px rgb(16 16 18 / 0.12);
   color-scheme: light;
 }
@@ -37,6 +40,9 @@
     --danger: #ff7b6e;
     --danger-soft: rgb(255 123 110 / 0.12);
     --success: #4ccf86;
+    --success-soft: rgb(76 207 134 / 0.12);
+    --warning: #fdb022;
+    --warning-soft: rgb(253 176 34 / 0.12);
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
@@ -58,6 +64,9 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --shadow-card: var(--shadow);
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI",
     Inter, Roboto, "Helvetica Neue", "Noto Sans Devanagari", "Nirmala UI", Arial, sans-serif;

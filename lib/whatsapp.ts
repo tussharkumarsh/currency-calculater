@@ -1,5 +1,7 @@
 import type { CashTotals, LineItem, MessageLanguage } from "@/types/cash-counter";
 import { amountInWords } from "@/lib/amount-in-words";
+import type { ChangeResult } from "@/lib/change-calculation";
+import { formatPaise } from "@/lib/discount-calculations";
 import { formatCount, formatINR } from "@/lib/format-currency";
 import { parseIndianMobile } from "@/lib/phone";
 
@@ -47,6 +49,11 @@ const LABELS = {
     totalPieces: "Total Pieces",
     grandTotal: "Grand Total",
     words: "Amount in Words",
+    bill: "Bill Amount",
+    received: "Cash Received",
+    change: "Change to Return",
+    due: "Balance Due",
+    exact: "exact amount",
     stop: ".",
     thanks: "Thank you!",
   },
@@ -61,6 +68,11 @@ const LABELS = {
     totalPieces: "कुल नग",
     grandTotal: "कुल राशि",
     words: "शब्दों में",
+    bill: "बिल राशि",
+    received: "प्राप्त नकद",
+    change: "लौटाने की राशि",
+    due: "बकाया राशि",
+    exact: "सही राशि",
     stop: "।",
     thanks: "धन्यवाद!",
   },
@@ -71,10 +83,26 @@ export interface SummaryOptions {
   language?: MessageLanguage;
   /** Pre-formatted local date/time; left out of the message when absent. */
   dateLabel?: string;
+  /** Bill vs. cash comparison; only added to the message when a bill amount was entered. */
+  payment?: ChangeResult;
 }
 
 function formatLine(line: LineItem): string {
   return `${formatINR(line.denomination.value)} × ${formatCount(line.quantity)} = ${formatINR(line.amount)}`;
+}
+
+function formatPayment(payment: ChangeResult, t: (typeof LABELS)[MessageLanguage]): string[] {
+  const result =
+    payment.status === "due"
+      ? `${t.due}: ${formatPaise(payment.amountPaise)}`
+      : payment.status === "change"
+        ? `${t.change}: ${formatPaise(payment.amountPaise)}`
+        : `${t.change}: ${formatPaise(0)} (${t.exact})`;
+  return [
+    `${t.bill}: ${formatPaise(payment.billPaise)}`,
+    `${t.received}: ${formatPaise(payment.receivedPaise)}`,
+    `*${result}*`,
+  ];
 }
 
 /** Builds the plain-text summary from the same totals object the UI renders. */
@@ -99,6 +127,9 @@ export function buildSummaryMessage(totals: CashTotals, options: SummaryOptions 
     `${t.totalPieces}: ${formatCount(totals.totalPieces)}`,
     "",
     `*${t.grandTotal}: ${formatINR(totals.grandTotal)}*`,
+  );
+  if (options.payment) out.push("", ...formatPayment(options.payment, t));
+  out.push(
     "",
     `${t.words}: ${amountInWords(totals.grandTotal, lang)}${t.stop}`,
     "",

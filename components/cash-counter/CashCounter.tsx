@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { RotateCcw, Send, Settings2, Undo2 } from "lucide-react";
+import { calculateChange } from "@/lib/change-calculation";
 import { copyText } from "@/lib/clipboard";
 import {
   SAMPLE_QUANTITIES,
@@ -10,10 +11,12 @@ import {
   setQuantity,
   stepQuantity,
 } from "@/lib/currency";
+import { parseAmount } from "@/lib/discount-calculations";
 import { formatCount, formatINR } from "@/lib/format-currency";
 import { getServerSettingsSnapshot, getSettingsSnapshot, saveSettings, subscribeSettings } from "@/lib/settings";
 import { buildSummaryMessage, buildWhatsAppUrl, formatMessageDate, resolveRecipient } from "@/lib/whatsapp";
 import type { CounterSettings as Settings, Quantities } from "@/types/cash-counter";
+import { BillChange, changeHeadline } from "./BillChange";
 import { CounterSettings } from "./CounterSettings";
 import { DenominationSection } from "./DenominationSection";
 import { LiveSummary } from "./LiveSummary";
@@ -24,6 +27,7 @@ const UNDO_WINDOW_MS = 8000;
 interface ClearedSnapshot {
   quantities: Quantities;
   customerNumber: string;
+  billInput: string;
 }
 
 export function CashCounter() {
@@ -32,6 +36,7 @@ export function CashCounter() {
   // Live transaction state lives only in memory: a reload always starts from zero.
   const [quantities, setQuantities] = useState<Quantities>({});
   const [customerNumber, setCustomerNumber] = useState("");
+  const [billInput, setBillInput] = useState("");
   const [notice, setNotice] = useState<ShareNotice | null>(null);
   const [shareAttempted, setShareAttempted] = useState(false);
   const [cleared, setCleared] = useState<ClearedSnapshot | null>(null);
@@ -51,10 +56,17 @@ export function CashCounter() {
     [customerNumber, settings.defaultNumber],
   );
 
+  // An empty bill keeps the change feature off; it is never treated as a ₹0 bill.
+  const bill = useMemo(() => parseAmount(billInput), [billInput]);
+  const change = useMemo(
+    () => (bill.status === "ok" ? calculateChange(bill.value, totals.grandTotal) : null),
+    [bill, totals.grandTotal],
+  );
+
   const noteLines = totals.lines.filter((line) => line.denomination.kind === "note");
   const coinLines = totals.lines.filter((line) => line.denomination.kind === "coin");
   const canShare = totals.grandTotal > 0;
-  const canClear = canShare || customerNumber !== "";
+  const canClear = canShare || customerNumber !== "" || billInput !== "";
 
   // Any edit makes earlier "opened"/"copied" feedback stale.
   const updateQuantities = useCallback((updater: (current: Quantities) => Quantities) => {
@@ -70,6 +82,10 @@ export function CashCounter() {
     (id: string, delta: number) => updateQuantities((q) => stepQuantity(q, id, delta)),
     [updateQuantities],
   );
+  const handleBillChange = useCallback((value: string) => {
+    setBillInput(value);
+    setNotice(null);
+  }, []);
   const registerInput = useCallback((index: number, el: HTMLInputElement | null) => {
     inputRefs.current[index] = el;
   }, []);
@@ -104,6 +120,7 @@ export function CashCounter() {
       shopName: settings.shopName,
       language: settings.language,
       dateLabel: settings.includeDate ? formatMessageDate(new Date()) : undefined,
+      payment: change ?? undefined,
     });
   }
 
@@ -129,9 +146,10 @@ export function CashCounter() {
 
   function handleClear() {
     if (!canClear) return;
-    setCleared({ quantities, customerNumber });
+    setCleared({ quantities, customerNumber, billInput });
     setQuantities({});
     setCustomerNumber("");
+    setBillInput("");
     setNotice(null);
     setShareAttempted(false);
     setResetKey((k) => k + 1);
@@ -141,6 +159,7 @@ export function CashCounter() {
     if (!cleared) return;
     setQuantities(cleared.quantities);
     setCustomerNumber(cleared.customerNumber);
+    setBillInput(cleared.billInput);
     setCleared(null);
   }
 
@@ -247,7 +266,14 @@ export function CashCounter() {
             totals={totals}
             language={settings.language}
             onLoadExample={handleLoadExample}
-          />
+          >
+            <BillChange
+              value={billInput}
+              onChange={handleBillChange}
+              error={bill.status === "invalid" ? bill.error : null}
+              result={change}
+            />
+          </LiveSummary>
           <div ref={shareSectionRef} className="scroll-mt-4 border-t border-line pt-3">
             <WhatsAppShare
               key={resetKey}
@@ -275,8 +301,16 @@ export function CashCounter() {
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 px-4 pt-2.5 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-xl items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-muted tabular">
+            <p className="truncate text-[11px] text-muted tabular">
               Total · {formatCount(totals.totalPieces)} {totals.totalPieces === 1 ? "piece" : "pieces"}
+              {change && (
+                <span
+                  className={`font-semibold ${change.status === "due" ? "text-warning" : "text-success"}`}
+                >
+                  {" "}
+                  · {changeHeadline(change)}
+                </span>
+              )}
             </p>
             <p className="truncate text-xl leading-tight font-semibold tracking-tight tabular">
               {formatINR(totals.grandTotal)}

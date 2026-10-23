@@ -7,9 +7,11 @@ interface LiveSummaryProps {
   totals: CashTotals;
   language: MessageLanguage;
   onLoadExample: () => void;
+  /** Rendered between the totals and the breakdown (the bill / change section). */
+  children?: React.ReactNode;
 }
 
-export function LiveSummary({ totals, language, onLoadExample }: LiveSummaryProps) {
+export function LiveSummary({ totals, language, onLoadExample, children }: LiveSummaryProps) {
   const empty = totals.grandTotal === 0;
 
   return (
@@ -34,6 +36,8 @@ export function LiveSummary({ totals, language, onLoadExample }: LiveSummaryProp
         <Stat label="Coins" value={totals.totalCoins} />
         <Stat label="Pieces" value={totals.totalPieces} />
       </dl>
+
+      {children}
 
       <div className="mt-3">
         <div className="flex items-baseline justify-between gap-3">
