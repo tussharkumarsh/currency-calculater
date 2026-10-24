@@ -19,6 +19,8 @@ describe("calculateChange", () => {
     expect(thousand.grandTotal).toBe(1000);
     expect(calculateChange(bill("980"), thousand.grandTotal)).toEqual({
       billPaise: 98_000,
+      cashPaise: 100_000,
+      onlinePaise: 0,
       receivedPaise: 100_000,
       status: "change",
       amountPaise: 2_000,
@@ -46,6 +48,32 @@ describe("calculateChange", () => {
     expect(calculateChange(bill("980"), more.grandTotal)).toMatchObject({ status: "change", amountPaise: 2_000 });
     const less = calculateTotals(denominations, { "note-500": 1 });
     expect(calculateChange(bill("980"), less.grandTotal)).toMatchObject({ status: "due", amountPaise: 48_000 });
+  });
+});
+
+describe("calculateChange with an online / bank transfer part", () => {
+  it("adds the online amount to the cash received", () => {
+    // ₹1,000 cash + ₹500 online against a ₹1,480 bill → ₹20 change.
+    expect(calculateChange(bill("1480"), thousand.grandTotal, bill("500"))).toEqual({
+      billPaise: 148_000,
+      cashPaise: 100_000,
+      onlinePaise: 50_000,
+      receivedPaise: 150_000,
+      status: "change",
+      amountPaise: 2_000,
+    });
+  });
+
+  it("reports what is still due after cash and online", () => {
+    expect(calculateChange(bill("2000"), thousand.grandTotal, bill("750.50"))).toMatchObject({
+      status: "due",
+      amountPaise: 24_950,
+    });
+  });
+
+  it("recognises an exact split payment, including all-online", () => {
+    expect(calculateChange(bill("1500"), thousand.grandTotal, bill("500"))).toMatchObject({ status: "exact" });
+    expect(calculateChange(bill("300"), 0, bill("300"))).toMatchObject({ status: "exact", amountPaise: 0 });
   });
 });
 
@@ -90,6 +118,31 @@ describe("buildSummaryMessage with a bill", () => {
   it("keeps the message byte-for-byte unchanged without a bill", () => {
     expect(buildSummaryMessage(thousand, { payment: undefined })).toBe(buildSummaryMessage(thousand));
     expect(buildSummaryMessage(thousand)).not.toContain("Bill Amount");
+  });
+
+  it("lists cash, online and total received for a split payment", () => {
+    const message = buildSummaryMessage(thousand, {
+      payment: calculateChange(bill("1480"), thousand.grandTotal, bill("500")),
+      onlinePaise: bill("500"),
+    });
+    expect(message).toContain(
+      [
+        "Bill Amount: ₹1,480",
+        "Cash Received: ₹1,000",
+        "Online / Bank Received: ₹500",
+        "Total Received: ₹1,500",
+        "*Change to Return: ₹20*",
+      ].join("\n"),
+    );
+  });
+
+  it("shows the cash / online split even without a bill", () => {
+    const message = buildSummaryMessage(thousand, { onlinePaise: bill("500") });
+    expect(message).toContain(
+      ["Cash Received: ₹1,000", "Online / Bank Received: ₹500", "Total Received: ₹1,500"].join("\n"),
+    );
+    expect(message).not.toContain("Bill Amount");
+    expect(buildSummaryMessage(thousand, { onlinePaise: 0 })).toBe(buildSummaryMessage(thousand));
   });
 
   it("translates the payment lines to Hindi", () => {

@@ -51,6 +51,8 @@ const LABELS = {
     words: "Amount in Words",
     bill: "Bill Amount",
     received: "Cash Received",
+    online: "Online / Bank Received",
+    totalReceived: "Total Received",
     change: "Change to Return",
     due: "Balance Due",
     exact: "exact amount",
@@ -70,6 +72,8 @@ const LABELS = {
     words: "शब्दों में",
     bill: "बिल राशि",
     received: "प्राप्त नकद",
+    online: "ऑनलाइन / बैंक प्राप्त",
+    totalReceived: "कुल प्राप्त",
     change: "लौटाने की राशि",
     due: "बकाया राशि",
     exact: "सही राशि",
@@ -85,10 +89,21 @@ export interface SummaryOptions {
   dateLabel?: string;
   /** Bill vs. cash comparison; only added to the message when a bill amount was entered. */
   payment?: ChangeResult;
+  /** Amount paid by UPI / bank transfer; the cash / online split is added when above zero. */
+  onlinePaise?: number;
 }
 
 function formatLine(line: LineItem): string {
   return `${formatINR(line.denomination.value)} × ${formatCount(line.quantity)} = ${formatINR(line.amount)}`;
+}
+
+function formatReceived(cashPaise: number, onlinePaise: number, t: (typeof LABELS)[MessageLanguage]): string[] {
+  if (onlinePaise <= 0) return [`${t.received}: ${formatPaise(cashPaise)}`];
+  return [
+    `${t.received}: ${formatPaise(cashPaise)}`,
+    `${t.online}: ${formatPaise(onlinePaise)}`,
+    `${t.totalReceived}: ${formatPaise(cashPaise + onlinePaise)}`,
+  ];
 }
 
 function formatPayment(payment: ChangeResult, t: (typeof LABELS)[MessageLanguage]): string[] {
@@ -100,7 +115,7 @@ function formatPayment(payment: ChangeResult, t: (typeof LABELS)[MessageLanguage
         : `${t.change}: ${formatPaise(0)} (${t.exact})`;
   return [
     `${t.bill}: ${formatPaise(payment.billPaise)}`,
-    `${t.received}: ${formatPaise(payment.receivedPaise)}`,
+    ...formatReceived(payment.cashPaise, payment.onlinePaise, t),
     `*${result}*`,
   ];
 }
@@ -129,6 +144,9 @@ export function buildSummaryMessage(totals: CashTotals, options: SummaryOptions 
     `*${t.grandTotal}: ${formatINR(totals.grandTotal)}*`,
   );
   if (options.payment) out.push("", ...formatPayment(options.payment, t));
+  else if (options.onlinePaise && options.onlinePaise > 0) {
+    out.push("", ...formatReceived(totals.grandTotal * 100, options.onlinePaise, t));
+  }
   out.push(
     "",
     `${t.words}: ${amountInWords(totals.grandTotal, lang)}${t.stop}`,

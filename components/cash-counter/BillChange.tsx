@@ -9,23 +9,29 @@ export function changeHeadline(result: ChangeResult): string {
   return "Exact amount received";
 }
 
-interface BillAmountFieldProps {
+interface AmountFieldProps {
+  id: string;
+  label: string;
+  hint: string;
+  placeholder: string;
   value: string;
   onChange: (value: string) => void;
   error: string | null;
-  /** Enter moves on to the first denomination, like the rest of the entry form. */
+  /** Enter moves on to the next field, like the rest of the entry form. */
   onEnter: () => void;
+  inputRef?: React.Ref<HTMLInputElement>;
 }
 
-/** Optional bill input at the top of the entry panel. */
-export function BillAmountField({ value, onChange, error, onEnter }: BillAmountFieldProps) {
+/** One optional rupee input row (bill amount, online payment) at the top of the entry panel. */
+export function AmountField({ id, label, hint, placeholder, value, onChange, error, onEnter, inputRef }: AmountFieldProps) {
+  const errorId = `${id}-error`;
   return (
     // Side by side only when the panel itself is wide enough (container query), else stacked.
-    <div className="@container mb-4 rounded-xl border border-line bg-surface-muted/60 px-3 py-2.5 sm:px-3.5">
+    <div className="@container px-3 py-2.5 sm:px-3.5">
       <div className="flex flex-col gap-1.5 @lg:flex-row @lg:items-center @lg:gap-4">
-        <label htmlFor="bill-amount" className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-ink">Bill Amount / Amount Due</span>
-          <span className="block text-xs text-muted">Optional — shows change to return</span>
+        <label htmlFor={id} className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-ink">{label}</span>
+          <span className="block text-xs text-muted">{hint}</span>
         </label>
         <div
           className={[
@@ -39,13 +45,14 @@ export function BillAmountField({ value, onChange, error, onEnter }: BillAmountF
             ₹
           </span>
           <input
-            id="bill-amount"
+            ref={inputRef}
+            id={id}
             type="text"
             inputMode="decimal"
             enterKeyHint="next"
             autoComplete="off"
             spellCheck={false}
-            placeholder="Enter bill amount (optional)"
+            placeholder={placeholder}
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={(event) => {
@@ -56,13 +63,13 @@ export function BillAmountField({ value, onChange, error, onEnter }: BillAmountF
             }}
             onFocus={(event) => event.currentTarget.select()}
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "bill-amount-error" : undefined}
+            aria-describedby={error ? errorId : undefined}
             className="h-full min-w-0 flex-1 bg-transparent px-2 pr-3.5 text-lg font-semibold tabular text-ink outline-none placeholder:text-sm placeholder:font-normal placeholder:text-muted/60"
           />
         </div>
       </div>
       {error && (
-        <p id="bill-amount-error" role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs text-danger @lg:justify-end">
+        <p id={errorId} role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs text-danger @lg:justify-end">
           <AlertCircle className="size-3.5 shrink-0" aria-hidden />
           {error}
         </p>
@@ -77,38 +84,60 @@ const TONES = {
   exact: { label: "Exact Amount Received", Icon: CheckCircle2, box: "bg-surface-muted/60", text: "text-success" },
 } as const;
 
-/** Bill vs. cash result for the summary panel. Renders nothing while no valid bill is entered. */
-export function ChangeSummary({ result }: { result: ChangeResult | null }) {
+interface ChangeSummaryProps {
+  /** Null while no valid bill is entered. */
+  result: ChangeResult | null;
+  cashPaise: number;
+  onlinePaise: number;
+}
+
+/**
+ * Bill vs. payment result for the summary panel. Without a bill it still shows the
+ * cash / online split once an online amount is entered; otherwise it renders nothing.
+ */
+export function ChangeSummary({ result, cashPaise, onlinePaise }: ChangeSummaryProps) {
   const tone = result ? TONES[result.status] : null;
+  const hasOnline = onlinePaise > 0;
 
   return (
     <div aria-live="polite">
-      {result && tone && (
+      {(result || hasOnline) && (
         <div className="mt-3 overflow-hidden rounded-xl border border-line text-sm tabular">
           <dl className="space-y-0.5 px-3.5 py-2">
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted">Bill amount</dt>
-              <dd className="font-medium text-ink">{formatPaise(result.billPaise)}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted">Cash received</dt>
-              <dd className="font-medium text-ink">{formatPaise(result.receivedPaise)}</dd>
-            </div>
+            {result && <Row label="Bill amount" value={result.billPaise} />}
+            <Row label="Cash received" value={cashPaise} />
+            {hasOnline && (
+              <>
+                <Row label="Online / bank received" value={onlinePaise} />
+                <Row label="Total received" value={cashPaise + onlinePaise} strong />
+              </>
+            )}
           </dl>
-          <div className={`flex items-center justify-between gap-3 border-t border-line px-3.5 py-2.5 ${tone.box}`}>
-            <div className="min-w-0">
-              <p className={`flex items-center gap-1.5 text-xs font-semibold ${tone.text}`}>
-                <tone.Icon className="size-3.5 shrink-0" aria-hidden />
-                {tone.label}
+          {result && tone && (
+            <div className={`flex items-center justify-between gap-3 border-t border-line px-3.5 py-2.5 ${tone.box}`}>
+              <div className="min-w-0">
+                <p className={`flex items-center gap-1.5 text-xs font-semibold ${tone.text}`}>
+                  <tone.Icon className="size-3.5 shrink-0" aria-hidden />
+                  {tone.label}
+                </p>
+                <p className="mt-0.5 text-ink-soft">{changeHeadline(result)}</p>
+              </div>
+              <p className="shrink-0 text-2xl leading-tight font-semibold tracking-tight text-ink">
+                {formatPaise(result.amountPaise)}
               </p>
-              <p className="mt-0.5 text-ink-soft">{changeHeadline(result)}</p>
             </div>
-            <p className="shrink-0 text-2xl leading-tight font-semibold tracking-tight text-ink">
-              {formatPaise(result.amountPaise)}
-            </p>
-          </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <div className={`flex justify-between gap-3 ${strong ? "border-t border-dashed border-line pt-0.5" : ""}`}>
+      <dt className={strong ? "font-medium text-ink" : "text-muted"}>{label}</dt>
+      <dd className={`text-ink ${strong ? "font-semibold" : "font-medium"}`}>{formatPaise(value)}</dd>
     </div>
   );
 }

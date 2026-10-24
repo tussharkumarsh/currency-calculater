@@ -16,7 +16,7 @@ import { formatCount, formatINR } from "@/lib/format-currency";
 import { getServerSettingsSnapshot, getSettingsSnapshot, saveSettings, subscribeSettings } from "@/lib/settings";
 import { buildSummaryMessage, buildWhatsAppUrl, formatMessageDate, resolveRecipient } from "@/lib/whatsapp";
 import type { CounterSettings as Settings, Quantities } from "@/types/cash-counter";
-import { BillAmountField, ChangeSummary, changeHeadline } from "./BillChange";
+import { AmountField, ChangeSummary, changeHeadline } from "./BillChange";
 import { CounterSettings } from "./CounterSettings";
 import { DenominationSection } from "./DenominationSection";
 import { LiveSummary } from "./LiveSummary";
@@ -28,6 +28,7 @@ interface ClearedSnapshot {
   quantities: Quantities;
   customerNumber: string;
   billInput: string;
+  onlineInput: string;
 }
 
 export function CashCounter() {
@@ -37,6 +38,7 @@ export function CashCounter() {
   const [quantities, setQuantities] = useState<Quantities>({});
   const [customerNumber, setCustomerNumber] = useState("");
   const [billInput, setBillInput] = useState("");
+  const [onlineInput, setOnlineInput] = useState("");
   const [notice, setNotice] = useState<ShareNotice | null>(null);
   const [shareAttempted, setShareAttempted] = useState(false);
   const [cleared, setCleared] = useState<ClearedSnapshot | null>(null);
@@ -47,6 +49,7 @@ export function CashCounter() {
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const customerInputRef = useRef<HTMLInputElement>(null);
+  const onlineInputRef = useRef<HTMLInputElement>(null);
   const shareSectionRef = useRef<HTMLDivElement>(null);
 
   const denominations = useMemo(() => getActiveDenominations(settings.showLegacy2000), [settings.showLegacy2000]);
@@ -58,15 +61,18 @@ export function CashCounter() {
 
   // An empty bill keeps the change feature off; it is never treated as a ₹0 bill.
   const bill = useMemo(() => parseAmount(billInput), [billInput]);
+  // Part of the payment received by UPI / bank transfer; counted alongside the cash.
+  const online = useMemo(() => parseAmount(onlineInput), [onlineInput]);
+  const onlinePaise = online.status === "ok" ? online.value : 0;
   const change = useMemo(
-    () => (bill.status === "ok" ? calculateChange(bill.value, totals.grandTotal) : null),
-    [bill, totals.grandTotal],
+    () => (bill.status === "ok" ? calculateChange(bill.value, totals.grandTotal, onlinePaise) : null),
+    [bill, totals.grandTotal, onlinePaise],
   );
 
   const noteLines = totals.lines.filter((line) => line.denomination.kind === "note");
   const coinLines = totals.lines.filter((line) => line.denomination.kind === "coin");
   const canShare = totals.grandTotal > 0;
-  const canClear = canShare || customerNumber !== "" || billInput !== "";
+  const canClear = canShare || customerNumber !== "" || billInput !== "" || onlineInput !== "";
 
   // Any edit makes earlier "opened"/"copied" feedback stale.
   const updateQuantities = useCallback((updater: (current: Quantities) => Quantities) => {
@@ -86,6 +92,11 @@ export function CashCounter() {
     setBillInput(value);
     setNotice(null);
   }, []);
+  const handleOnlineChange = useCallback((value: string) => {
+    setOnlineInput(value);
+    setNotice(null);
+  }, []);
+  const focusOnline = useCallback(() => onlineInputRef.current?.focus(), []);
   const focusFirstDenomination = useCallback(() => inputRefs.current[0]?.focus(), []);
   const registerInput = useCallback((index: number, el: HTMLInputElement | null) => {
     inputRefs.current[index] = el;
@@ -122,6 +133,7 @@ export function CashCounter() {
       language: settings.language,
       dateLabel: settings.includeDate ? formatMessageDate(new Date()) : undefined,
       payment: change ?? undefined,
+      onlinePaise,
     });
   }
 
@@ -147,10 +159,11 @@ export function CashCounter() {
 
   function handleClear() {
     if (!canClear) return;
-    setCleared({ quantities, customerNumber, billInput });
+    setCleared({ quantities, customerNumber, billInput, onlineInput });
     setQuantities({});
     setCustomerNumber("");
     setBillInput("");
+    setOnlineInput("");
     setNotice(null);
     setShareAttempted(false);
     setResetKey((k) => k + 1);
@@ -161,6 +174,7 @@ export function CashCounter() {
     setQuantities(cleared.quantities);
     setCustomerNumber(cleared.customerNumber);
     setBillInput(cleared.billInput);
+    setOnlineInput(cleared.onlineInput);
     setCleared(null);
   }
 
@@ -229,12 +243,29 @@ export function CashCounter() {
             </div>
           </header>
 
-          <BillAmountField
-            value={billInput}
-            onChange={handleBillChange}
-            error={bill.status === "invalid" ? bill.error : null}
-            onEnter={focusFirstDenomination}
-          />
+          <div className="mb-4 divide-y divide-line rounded-xl border border-line bg-surface-muted/60">
+            <AmountField
+              id="bill-amount"
+              label="Bill Amount / Amount Due"
+              hint="Optional — shows change to return"
+              placeholder="Enter bill amount (optional)"
+              value={billInput}
+              onChange={handleBillChange}
+              error={bill.status === "invalid" ? bill.error : null}
+              onEnter={focusOnline}
+            />
+            <AmountField
+              id="online-amount"
+              label="Online / Bank Transfer"
+              hint="Optional — part paid by UPI or bank, added to the cash"
+              placeholder="Enter online amount (optional)"
+              value={onlineInput}
+              onChange={handleOnlineChange}
+              error={online.status === "invalid" ? online.error : null}
+              onEnter={focusFirstDenomination}
+              inputRef={onlineInputRef}
+            />
+          </div>
 
           <div className="grid gap-5 xl:grid-cols-2 xl:gap-6">
             <DenominationSection
@@ -276,7 +307,7 @@ export function CashCounter() {
             language={settings.language}
             onLoadExample={handleLoadExample}
           >
-            <ChangeSummary result={change} />
+            <ChangeSummary result={change} cashPaise={totals.grandTotal * 100} onlinePaise={onlinePaise} />
           </LiveSummary>
           <div ref={shareSectionRef} className="scroll-mt-4 border-t border-line pt-3">
             <WhatsAppShare
