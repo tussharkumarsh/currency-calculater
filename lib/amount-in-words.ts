@@ -68,3 +68,17 @@ export function amountInWords(amount: number, lang: MessageLanguage = "en"): str
   if (lang === "hi") return `${words} ${amount === 1 ? "रुपया" : "रुपये"} मात्र`;
   return `${words} ${amount === 1 ? "Rupee" : "Rupees"} Only`;
 }
+
+/** Like `amountInWords` but takes paise: "One Thousand Five Hundred Rupees and Fifty Paise Only". */
+export function paiseAmountInWords(paise: number, lang: MessageLanguage = "en"): string {
+  const rupees = Math.floor(paise / 100);
+  const rest = paise % 100;
+  if (rest === 0) return amountInWords(rupees, lang);
+
+  const hi = lang === "hi";
+  const paiseWords = `${numberToIndianWords(rest, lang)} ${hi ? (rest === 1 ? "पैसा" : "पैसे") : rest === 1 ? "Paisa" : "Paise"}`;
+  const only = hi ? "मात्र" : "Only";
+  if (rupees === 0) return `${paiseWords} ${only}`;
+  const rupeeWords = `${numberToIndianWords(rupees, lang)} ${hi ? (rupees === 1 ? "रुपया" : "रुपये") : rupees === 1 ? "Rupee" : "Rupees"}`;
+  return `${rupeeWords} ${hi ? "और" : "and"} ${paiseWords} ${only}`;
+}

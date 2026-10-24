@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { amountInWords, numberToIndianWords } from "@/lib/amount-in-words";
+import { amountInWords, numberToIndianWords, paiseAmountInWords } from "@/lib/amount-in-words";
 
 describe("numberToIndianWords (English)", () => {
   it.each([
@@ -58,5 +58,18 @@ describe("amountInWords", () => {
       if (!en || en.includes("undefined") || en.includes("  ")) throw new Error(`Bad English words for ${n}`);
       if (!hi || hi.includes("undefined") || hi.includes("  ")) throw new Error(`Bad Hindi words for ${n}`);
     }
+  });
+});
+
+describe("paiseAmountInWords", () => {
+  it.each([
+    [150_000, "en", "One Thousand Five Hundred Rupees Only"],
+    [150_050, "en", "One Thousand Five Hundred Rupees and Fifty Paise Only"],
+    [101, "en", "One Rupee and One Paisa Only"],
+    [75, "en", "Seventy Five Paise Only"],
+    [150_050, "hi", "एक हज़ार पाँच सौ रुपये और पचास पैसे मात्र"],
+    [50, "hi", "पचास पैसे मात्र"],
+  ] as const)("%i paise (%s) → %s", (paise, lang, words) => {
+    expect(paiseAmountInWords(paise, lang)).toBe(words);
   });
 });

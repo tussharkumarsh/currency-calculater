@@ -147,7 +147,7 @@ export function WhatsAppShare({
 
       <div aria-live="polite" className="text-xs">
         {!canShare ? (
-          <p className="text-center text-muted">Enter at least one denomination to share.</p>
+          <p className="text-center text-muted">Enter at least one denomination or an online amount to share.</p>
         ) : notice?.kind === "opened" ? (
           <div className="rounded-lg bg-accent-soft px-3 py-2 leading-relaxed text-ink-soft">
             <p className="flex gap-2">

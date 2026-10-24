@@ -1,5 +1,5 @@
 import type { CashTotals, LineItem, MessageLanguage } from "@/types/cash-counter";
-import { amountInWords } from "@/lib/amount-in-words";
+import { amountInWords, paiseAmountInWords } from "@/lib/amount-in-words";
 import type { ChangeResult } from "@/lib/change-calculation";
 import { formatPaise } from "@/lib/discount-calculations";
 import { formatCount, formatINR } from "@/lib/format-currency";
@@ -40,6 +40,8 @@ export function resolveRecipient(customerInput: string, defaultInput: string): R
 const LABELS = {
   en: {
     title: "Cash Received",
+    paymentTitle: "Payment Received",
+    cashTotal: "Cash Total",
     date: "Date",
     breakdown: "Denomination Breakdown:",
     notes: "Notes",
@@ -52,7 +54,6 @@ const LABELS = {
     bill: "Bill Amount",
     received: "Cash Received",
     online: "Online / Bank Received",
-    totalReceived: "Total Received",
     change: "Change to Return",
     due: "Balance Due",
     exact: "exact amount",
@@ -61,6 +62,8 @@ const LABELS = {
   },
   hi: {
     title: "नकद प्राप्त",
+    paymentTitle: "भुगतान प्राप्त",
+    cashTotal: "कुल नकद",
     date: "दिनांक",
     breakdown: "नोट व सिक्कों का विवरण:",
     notes: "नोट",
@@ -73,7 +76,6 @@ const LABELS = {
     bill: "बिल राशि",
     received: "प्राप्त नकद",
     online: "ऑनलाइन / बैंक प्राप्त",
-    totalReceived: "कुल प्राप्त",
     change: "लौटाने की राशि",
     due: "बकाया राशि",
     exact: "सही राशि",
@@ -89,21 +91,15 @@ export interface SummaryOptions {
   dateLabel?: string;
   /** Bill vs. cash comparison; only added to the message when a bill amount was entered. */
   payment?: ChangeResult;
-  /** Amount paid by UPI / bank transfer; the cash / online split is added when above zero. */
+  /**
+   * Amount paid by UPI / bank transfer. When above zero it is added to the grand total and the
+   * message lists the cash / online split; a payment made entirely online can be shared too.
+   */
   onlinePaise?: number;
 }
 
 function formatLine(line: LineItem): string {
   return `${formatINR(line.denomination.value)} × ${formatCount(line.quantity)} = ${formatINR(line.amount)}`;
-}
-
-function formatReceived(cashPaise: number, onlinePaise: number, t: (typeof LABELS)[MessageLanguage]): string[] {
-  if (onlinePaise <= 0) return [`${t.received}: ${formatPaise(cashPaise)}`];
-  return [
-    `${t.received}: ${formatPaise(cashPaise)}`,
-    `${t.online}: ${formatPaise(onlinePaise)}`,
-    `${t.totalReceived}: ${formatPaise(cashPaise + onlinePaise)}`,
-  ];
 }
 
 function formatPayment(payment: ChangeResult, t: (typeof LABELS)[MessageLanguage]): string[] {
@@ -115,7 +111,8 @@ function formatPayment(payment: ChangeResult, t: (typeof LABELS)[MessageLanguage
         : `${t.change}: ${formatPaise(0)} (${t.exact})`;
   return [
     `${t.bill}: ${formatPaise(payment.billPaise)}`,
-    ...formatReceived(payment.cashPaise, payment.onlinePaise, t),
+    // With an online part, the cash / online split and the total are already listed above.
+    ...(payment.onlinePaise > 0 ? [] : [`${t.received}: ${formatPaise(payment.receivedPaise)}`]),
     `*${result}*`,
   ];
 }
@@ -125,34 +122,37 @@ export function buildSummaryMessage(totals: CashTotals, options: SummaryOptions 
   const lang = options.language ?? "en";
   const t = LABELS[lang];
   const shopName = options.shopName?.trim();
+  const onlinePaise = Math.max(options.onlinePaise ?? 0, 0);
+  const hasOnline = onlinePaise > 0;
+  const grandPaise = totals.grandTotal * 100 + onlinePaise;
   const notes = totals.usedLines.filter((l) => l.denomination.kind === "note");
   const coins = totals.usedLines.filter((l) => l.denomination.kind === "coin");
 
-  const out: string[] = [shopName ? `*${t.title} — ${shopName}*` : `*${t.title}*`];
+  const title = hasOnline ? t.paymentTitle : t.title;
+  const out: string[] = [shopName ? `*${title} — ${shopName}*` : `*${title}*`];
   if (options.dateLabel) out.push(`${t.date}: ${options.dateLabel}`);
 
-  out.push("", t.breakdown);
-  if (notes.length) out.push(`_${t.notes}_`, ...notes.map(formatLine));
-  if (coins.length) out.push(`_${t.coins}_`, ...coins.map(formatLine));
-
-  out.push(
-    "",
-    `${t.totalNotes}: ${formatCount(totals.totalNotes)}`,
-    `${t.totalCoins}: ${formatCount(totals.totalCoins)}`,
-    `${t.totalPieces}: ${formatCount(totals.totalPieces)}`,
-    "",
-    `*${t.grandTotal}: ${formatINR(totals.grandTotal)}*`,
-  );
-  if (options.payment) out.push("", ...formatPayment(options.payment, t));
-  else if (options.onlinePaise && options.onlinePaise > 0) {
-    out.push("", ...formatReceived(totals.grandTotal * 100, options.onlinePaise, t));
+  // A payment made entirely online has no denominations to list.
+  if (!hasOnline || totals.usedLines.length > 0) {
+    out.push("", t.breakdown);
+    if (notes.length) out.push(`_${t.notes}_`, ...notes.map(formatLine));
+    if (coins.length) out.push(`_${t.coins}_`, ...coins.map(formatLine));
+    out.push(
+      "",
+      `${t.totalNotes}: ${formatCount(totals.totalNotes)}`,
+      `${t.totalCoins}: ${formatCount(totals.totalCoins)}`,
+      `${t.totalPieces}: ${formatCount(totals.totalPieces)}`,
+    );
   }
-  out.push(
-    "",
-    `${t.words}: ${amountInWords(totals.grandTotal, lang)}${t.stop}`,
-    "",
-    t.thanks,
-  );
+
+  out.push("");
+  if (hasOnline) {
+    out.push(`${t.cashTotal}: ${formatINR(totals.grandTotal)}`, `${t.online}: ${formatPaise(onlinePaise)}`);
+  }
+  out.push(`*${t.grandTotal}: ${formatPaise(grandPaise)}*`);
+  if (options.payment) out.push("", ...formatPayment(options.payment, t));
+  const words = hasOnline ? paiseAmountInWords(grandPaise, lang) : amountInWords(totals.grandTotal, lang);
+  out.push("", `${t.words}: ${words}${t.stop}`, "", t.thanks);
   return out.join("\n");
 }
 

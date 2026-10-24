@@ -120,29 +120,48 @@ describe("buildSummaryMessage with a bill", () => {
     expect(buildSummaryMessage(thousand)).not.toContain("Bill Amount");
   });
 
-  it("lists cash, online and total received for a split payment", () => {
+  it("adds the online part to the grand total for a split payment", () => {
     const message = buildSummaryMessage(thousand, {
       payment: calculateChange(bill("1480"), thousand.grandTotal, bill("500")),
       onlinePaise: bill("500"),
     });
+    expect(message.startsWith("*Payment Received*")).toBe(true);
+    expect(message).toContain("_Notes_");
     expect(message).toContain(
       [
-        "Bill Amount: ₹1,480",
-        "Cash Received: ₹1,000",
+        "Cash Total: ₹1,000",
         "Online / Bank Received: ₹500",
-        "Total Received: ₹1,500",
+        "*Grand Total: ₹1,500*",
+        "",
+        "Bill Amount: ₹1,480",
         "*Change to Return: ₹20*",
       ].join("\n"),
     );
+    expect(message).toContain("Amount in Words: One Thousand Five Hundred Rupees Only.");
   });
 
   it("shows the cash / online split even without a bill", () => {
-    const message = buildSummaryMessage(thousand, { onlinePaise: bill("500") });
+    const message = buildSummaryMessage(thousand, { onlinePaise: bill("500.50") });
     expect(message).toContain(
-      ["Cash Received: ₹1,000", "Online / Bank Received: ₹500", "Total Received: ₹1,500"].join("\n"),
+      ["Cash Total: ₹1,000", "Online / Bank Received: ₹500.50", "*Grand Total: ₹1,500.50*"].join("\n"),
     );
+    expect(message).toContain("One Thousand Five Hundred Rupees and Fifty Paise Only.");
     expect(message).not.toContain("Bill Amount");
     expect(buildSummaryMessage(thousand, { onlinePaise: 0 })).toBe(buildSummaryMessage(thousand));
+  });
+
+  it("shares a payment made entirely online, without a denomination breakdown", () => {
+    const none = calculateTotals(denominations, {});
+    const message = buildSummaryMessage(none, {
+      payment: calculateChange(bill("750"), none.grandTotal, bill("750")),
+      onlinePaise: bill("750"),
+    });
+    expect(message).not.toContain("Denomination Breakdown");
+    expect(message).not.toContain("Total Pieces");
+    expect(message).toContain(
+      ["Cash Total: ₹0", "Online / Bank Received: ₹750", "*Grand Total: ₹750*"].join("\n"),
+    );
+    expect(message).toContain("*Change to Return: ₹0 (exact amount)*");
   });
 
   it("translates the payment lines to Hindi", () => {

@@ -1,18 +1,23 @@
 import { Sparkles } from "lucide-react";
-import { amountInWords } from "@/lib/amount-in-words";
+import { paiseAmountInWords } from "@/lib/amount-in-words";
+import { formatPaise } from "@/lib/discount-calculations";
 import { formatCount, formatINR } from "@/lib/format-currency";
 import type { CashTotals, MessageLanguage } from "@/types/cash-counter";
 
 interface LiveSummaryProps {
   totals: CashTotals;
+  /** Paid by UPI / bank transfer; included in the grand total. */
+  onlinePaise: number;
   language: MessageLanguage;
   onLoadExample: () => void;
   /** Rendered between the totals and the breakdown (the bill / change section). */
   children?: React.ReactNode;
 }
 
-export function LiveSummary({ totals, language, onLoadExample, children }: LiveSummaryProps) {
-  const empty = totals.grandTotal === 0;
+export function LiveSummary({ totals, onlinePaise, language, onLoadExample, children }: LiveSummaryProps) {
+  const grandPaise = totals.grandTotal * 100 + onlinePaise;
+  const empty = grandPaise === 0;
+  const noCash = totals.grandTotal === 0;
 
   return (
     <section aria-labelledby="summary-heading">
@@ -25,10 +30,15 @@ export function LiveSummary({ totals, language, onLoadExample, children }: LiveS
           empty ? "text-muted/60" : "text-ink",
         ].join(" ")}
       >
-        {formatINR(totals.grandTotal)}
+        {formatPaise(grandPaise)}
       </p>
+      {onlinePaise > 0 && (
+        <p className="mt-1 text-sm font-medium text-ink-soft tabular">
+          Cash {formatINR(totals.grandTotal)} + Online {formatPaise(onlinePaise)}
+        </p>
+      )}
       <p className="mt-1.5 min-h-5 text-sm leading-snug text-muted" lang={language === "hi" ? "hi" : "en"}>
-        {empty ? "Totals update as you type." : amountInWords(totals.grandTotal, language)}
+        {empty ? "Totals update as you type." : paiseAmountInWords(grandPaise, language)}
       </p>
 
       <dl className="mt-3 grid grid-cols-3 divide-x divide-line rounded-xl border border-line bg-surface-muted/60">
@@ -47,7 +57,7 @@ export function LiveSummary({ totals, language, onLoadExample, children }: LiveS
           </p>
         </div>
 
-        {empty ? (
+        {noCash ? (
           <div className="mt-2 flex flex-col items-start gap-2 rounded-xl border border-dashed border-line-strong px-4 py-3.5">
             <p className="text-sm text-muted">
               Enter how many of each note and coin you received. Press <Kbd>Enter</Kbd> to jump to the next one.

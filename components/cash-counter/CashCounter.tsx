@@ -11,8 +11,8 @@ import {
   setQuantity,
   stepQuantity,
 } from "@/lib/currency";
-import { parseAmount } from "@/lib/discount-calculations";
-import { formatCount, formatINR } from "@/lib/format-currency";
+import { formatPaise, parseAmount } from "@/lib/discount-calculations";
+import { formatCount } from "@/lib/format-currency";
 import { getServerSettingsSnapshot, getSettingsSnapshot, saveSettings, subscribeSettings } from "@/lib/settings";
 import { buildSummaryMessage, buildWhatsAppUrl, formatMessageDate, resolveRecipient } from "@/lib/whatsapp";
 import type { CounterSettings as Settings, Quantities } from "@/types/cash-counter";
@@ -71,7 +71,9 @@ export function CashCounter() {
 
   const noteLines = totals.lines.filter((line) => line.denomination.kind === "note");
   const coinLines = totals.lines.filter((line) => line.denomination.kind === "coin");
-  const canShare = totals.grandTotal > 0;
+  // Cash, online or both: a payment made entirely online can be shared too.
+  const grandPaise = totals.grandTotal * 100 + onlinePaise;
+  const canShare = grandPaise > 0;
   const canClear = canShare || customerNumber !== "" || billInput !== "" || onlineInput !== "";
 
   // Any edit makes earlier "opened"/"copied" feedback stale.
@@ -304,6 +306,7 @@ export function CashCounter() {
         <aside className="min-w-0 space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5">
           <LiveSummary
             totals={totals}
+            onlinePaise={onlinePaise}
             language={settings.language}
             onLoadExample={handleLoadExample}
           >
@@ -348,7 +351,7 @@ export function CashCounter() {
               )}
             </p>
             <p className="truncate text-xl leading-tight font-semibold tracking-tight tabular">
-              {formatINR(totals.grandTotal)}
+              {formatPaise(grandPaise)}
             </p>
           </div>
           <button
