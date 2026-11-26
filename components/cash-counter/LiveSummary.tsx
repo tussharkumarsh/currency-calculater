@@ -1,42 +1,51 @@
 import { Sparkles } from "lucide-react";
 import { paiseAmountInWords } from "@/lib/amount-in-words";
+import type { ChangeResult } from "@/lib/change-calculation";
 import { formatPaise } from "@/lib/discount-calculations";
 import { formatCount, formatINR } from "@/lib/format-currency";
 import type { CashTotals, MessageLanguage } from "@/types/cash-counter";
+import { ChangeBadge } from "./BillChange";
 
 interface LiveSummaryProps {
   totals: CashTotals;
   /** Paid by UPI / bank transfer; included in the grand total. */
   onlinePaise: number;
+  /** Bill vs. payment result; shown beside the grand total when a bill is entered. */
+  change: ChangeResult | null;
   language: MessageLanguage;
   onLoadExample: () => void;
   /** Rendered between the totals and the breakdown (the bill / change section). */
   children?: React.ReactNode;
 }
 
-export function LiveSummary({ totals, onlinePaise, language, onLoadExample, children }: LiveSummaryProps) {
+export function LiveSummary({ totals, onlinePaise, change, language, onLoadExample, children }: LiveSummaryProps) {
   const grandPaise = totals.grandTotal * 100 + onlinePaise;
   const empty = grandPaise === 0;
   const noCash = totals.grandTotal === 0;
 
   return (
     <section aria-labelledby="summary-heading">
-      <h2 id="summary-heading" className="text-sm font-medium text-muted">
-        Grand total
-      </h2>
-      <p
-        className={[
-          "mt-0.5 break-all text-4xl leading-[1.1] font-semibold tracking-tight tabular transition-colors sm:text-[2.5rem] md:text-4xl lg:text-[2.5rem]",
-          empty ? "text-muted/60" : "text-ink",
-        ].join(" ")}
-      >
-        {formatPaise(grandPaise)}
-      </p>
-      {onlinePaise > 0 && (
-        <p className="mt-1 text-sm font-medium text-ink-soft tabular">
-          Cash {formatINR(totals.grandTotal)} + Online {formatPaise(onlinePaise)}
-        </p>
-      )}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 id="summary-heading" className="text-sm font-medium text-muted">
+            Grand total
+          </h2>
+          <p
+            className={[
+              "mt-0.5 break-all text-4xl leading-[1.1] font-semibold tracking-tight tabular transition-colors sm:text-[2.5rem] md:text-4xl lg:text-[2.5rem]",
+              empty ? "text-muted/60" : "text-ink",
+            ].join(" ")}
+          >
+            {formatPaise(grandPaise)}
+          </p>
+          {onlinePaise > 0 && (
+            <p className="mt-1 text-sm font-medium text-ink-soft tabular">
+              Cash {formatINR(totals.grandTotal)} + Online {formatPaise(onlinePaise)}
+            </p>
+          )}
+        </div>
+        {change && <ChangeBadge result={change} />}
+      </div>
       <p className="mt-1.5 min-h-5 text-sm leading-snug text-muted" lang={language === "hi" ? "hi" : "en"}>
         {empty ? "Totals update as you type." : paiseAmountInWords(grandPaise, language)}
       </p>

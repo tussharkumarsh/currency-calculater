@@ -79,10 +79,30 @@ export function AmountField({ id, label, hint, placeholder, value, onChange, err
 }
 
 const TONES = {
-  change: { label: "Change to Return", Icon: Coins, box: "bg-success-soft", text: "text-success" },
-  due: { label: "Balance Due", Icon: AlertCircle, box: "bg-warning-soft", text: "text-warning" },
-  exact: { label: "Exact Amount Received", Icon: CheckCircle2, box: "bg-surface-muted/60", text: "text-success" },
+  change: { label: "Change to Return", short: "Return", Icon: Coins, box: "bg-success-soft", border: "border-success/25", text: "text-success" },
+  due: { label: "Balance Due", short: "Balance Due", Icon: AlertCircle, box: "bg-warning-soft", border: "border-warning/25", text: "text-warning" },
+  exact: { label: "Exact Amount Received", short: "Paid in full", Icon: CheckCircle2, box: "bg-success-soft", border: "border-success/25", text: "text-success" },
 } as const;
+
+/** Prominent status card shown beside the grand total: what the cashier must do next. */
+export function ChangeBadge({ result }: { result: ChangeResult }) {
+  const tone = TONES[result.status];
+  return (
+    <div className={`shrink-0 rounded-xl border px-3.5 py-2 text-right ${tone.box} ${tone.border}`}>
+      <p className={`flex items-center justify-end gap-1.5 text-xs font-semibold tracking-wide uppercase ${tone.text}`}>
+        <tone.Icon className="size-3.5 shrink-0" aria-hidden />
+        {tone.short}
+      </p>
+      {result.status === "exact" ? (
+        <p className={`mt-0.5 text-lg leading-tight font-bold ${tone.text}`}>No change</p>
+      ) : (
+        <p className={`mt-0.5 text-3xl leading-tight font-bold tracking-tight tabular ${tone.text}`}>
+          {formatPaise(result.amountPaise)}
+        </p>
+      )}
+    </div>
+  );
+}
 
 interface ChangeSummaryProps {
   /** Null while no valid bill is entered. */
@@ -114,19 +134,14 @@ export function ChangeSummary({ result, cashPaise, onlinePaise }: ChangeSummaryP
             )}
           </dl>
           {result && tone && (
-            <div className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-line px-3.5 py-3.5 ${tone.box}`}>
-              <div className="min-w-0">
-                <p className={`flex items-center gap-1.5 text-sm font-semibold ${tone.text}`}>
-                  <tone.Icon className="size-4 shrink-0" aria-hidden />
-                  {tone.label}
-                </p>
-                <p className="mt-0.5 font-medium text-ink-soft">{changeHeadline(result)}</p>
-              </div>
-              <p
-                className={`ml-auto shrink-0 text-4xl leading-tight font-bold tracking-tight sm:text-[2.5rem] ${result.status === "exact" ? "text-ink" : tone.text}`}
-              >
-                {formatPaise(result.amountPaise)}
+            <div className={`flex items-center justify-between gap-3 border-t border-line px-3.5 py-2 ${tone.box}`}>
+              <p className={`flex min-w-0 items-center gap-1.5 font-semibold ${tone.text}`}>
+                <tone.Icon className="size-4 shrink-0" aria-hidden />
+                {changeHeadline(result)}
               </p>
+              {result.status !== "exact" && (
+                <p className={`shrink-0 text-lg font-bold ${tone.text}`}>{formatPaise(result.amountPaise)}</p>
+              )}
             </div>
           )}
         </div>

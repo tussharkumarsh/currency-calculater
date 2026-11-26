@@ -307,6 +307,7 @@ export function CashCounter() {
           <LiveSummary
             totals={totals}
             onlinePaise={onlinePaise}
+            change={change}
             language={settings.language}
             onLoadExample={handleLoadExample}
           >
