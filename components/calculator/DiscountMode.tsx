@@ -4,16 +4,18 @@ import { useState } from "react";
 import { SegmentedTabs, type SegmentedTab } from "@/components/app/SegmentedTabs";
 import { DiscountCalculator } from "./DiscountCalculator";
 import { SellingPriceCalculator } from "./SellingPriceCalculator";
+import { LandedCostCalculator } from "./LandedCostCalculator";
 
-type DiscountTab = "customer" | "selling";
+type DiscountTab = "customer" | "selling" | "transport";
 
 const TABS: readonly SegmentedTab<DiscountTab>[] = [
-  { id: "customer", label: "Customer Discount" },
+  { id: "customer", label: "Customer Discount", shortLabel: "Discount" },
   { id: "selling", label: "Selling Price / Margin", shortLabel: "Selling price" },
+  { id: "transport", label: "Transport Cost %", shortLabel: "Transport %" },
 ];
 
 /**
- * Discount Calculator mode: one tool at a time. Both tabs stay mounted (the inactive
+ * Discount Calculator mode: one tool at a time. All tabs stay mounted (the inactive
  * one is hidden) so each keeps its own values while switching.
  */
 export function DiscountMode() {
@@ -37,6 +39,9 @@ export function DiscountMode() {
         </div>
         <div id="panel-discount-selling" role="tabpanel" aria-labelledby="tab-discount-selling" hidden={tab !== "selling"}>
           <SellingPriceCalculator />
+        </div>
+        <div id="panel-discount-transport" role="tabpanel" aria-labelledby="tab-discount-transport" hidden={tab !== "transport"}>
+          <LandedCostCalculator />
         </div>
       </main>
       <footer className="mx-auto max-w-[1240px] px-4 pb-6 text-center text-xs text-muted sm:px-6">
