@@ -26,7 +26,7 @@ export function LiveSummary({ totals, onlinePaise, language, onLoadExample, chil
       </h2>
       <p
         className={[
-          "mt-0.5 break-all text-[2.75rem] leading-[1.1] font-semibold tracking-tight tabular transition-colors sm:text-5xl md:text-[2.5rem] lg:text-5xl",
+          "mt-0.5 break-all text-4xl leading-[1.1] font-semibold tracking-tight tabular transition-colors sm:text-[2.5rem] md:text-4xl lg:text-[2.5rem]",
           empty ? "text-muted/60" : "text-ink",
         ].join(" ")}
       >

@@ -114,15 +114,17 @@ export function ChangeSummary({ result, cashPaise, onlinePaise }: ChangeSummaryP
             )}
           </dl>
           {result && tone && (
-            <div className={`flex items-center justify-between gap-3 border-t border-line px-3.5 py-2.5 ${tone.box}`}>
+            <div className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-line px-3.5 py-3.5 ${tone.box}`}>
               <div className="min-w-0">
-                <p className={`flex items-center gap-1.5 text-xs font-semibold ${tone.text}`}>
-                  <tone.Icon className="size-3.5 shrink-0" aria-hidden />
+                <p className={`flex items-center gap-1.5 text-sm font-semibold ${tone.text}`}>
+                  <tone.Icon className="size-4 shrink-0" aria-hidden />
                   {tone.label}
                 </p>
-                <p className="mt-0.5 text-ink-soft">{changeHeadline(result)}</p>
+                <p className="mt-0.5 font-medium text-ink-soft">{changeHeadline(result)}</p>
               </div>
-              <p className="shrink-0 text-2xl leading-tight font-semibold tracking-tight text-ink">
+              <p
+                className={`ml-auto shrink-0 text-4xl leading-tight font-bold tracking-tight sm:text-[2.5rem] ${result.status === "exact" ? "text-ink" : tone.text}`}
+              >
                 {formatPaise(result.amountPaise)}
               </p>
             </div>
