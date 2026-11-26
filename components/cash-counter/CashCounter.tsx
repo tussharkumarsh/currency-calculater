@@ -311,7 +311,7 @@ export function CashCounter() {
             language={settings.language}
             onLoadExample={handleLoadExample}
           >
-            <ChangeSummary result={change} cashPaise={totals.grandTotal * 100} onlinePaise={onlinePaise} />
+            <ChangeSummary cashPaise={totals.grandTotal * 100} onlinePaise={onlinePaise} />
           </LiveSummary>
           <div ref={shareSectionRef} className="scroll-mt-4 border-t border-line pt-3">
             <WhatsAppShare

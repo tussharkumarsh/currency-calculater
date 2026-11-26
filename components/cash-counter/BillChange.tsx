@@ -79,74 +79,63 @@ export function AmountField({ id, label, hint, placeholder, value, onChange, err
 }
 
 const TONES = {
-  change: { label: "Change to Return", short: "Return", Icon: Coins, box: "bg-success-soft", border: "border-success/25", text: "text-success" },
-  due: { label: "Balance Due", short: "Balance Due", Icon: AlertCircle, box: "bg-warning-soft", border: "border-warning/25", text: "text-warning" },
-  exact: { label: "Exact Amount Received", short: "Paid in full", Icon: CheckCircle2, box: "bg-success-soft", border: "border-success/25", text: "text-success" },
+  change: { label: "Change to Return", Icon: Coins, box: "bg-success-soft", border: "border-success/25", text: "text-success" },
+  due: { label: "Balance Due", Icon: AlertCircle, box: "bg-warning-soft", border: "border-warning/25", text: "text-warning" },
+  exact: { label: "Exact Amount Received", Icon: CheckCircle2, box: "bg-success-soft", border: "border-success/25", text: "text-success" },
 } as const;
 
-/** Prominent status card shown beside the grand total: what the cashier must do next. */
+/**
+ * Bill vs. payment card shown beside the grand total: bill, received and the
+ * amount still due (or change to return) in large type, so the cashier sees it at a glance.
+ */
 export function ChangeBadge({ result }: { result: ChangeResult }) {
   const tone = TONES[result.status];
   return (
-    <div className={`shrink-0 rounded-xl border px-3.5 py-2 text-right ${tone.box} ${tone.border}`}>
-      <p className={`flex items-center justify-end gap-1.5 text-xs font-semibold tracking-wide uppercase ${tone.text}`}>
-        <tone.Icon className="size-3.5 shrink-0" aria-hidden />
-        {tone.short}
-      </p>
-      {result.status === "exact" ? (
-        <p className={`mt-0.5 text-lg leading-tight font-bold ${tone.text}`}>No change</p>
-      ) : (
-        <p className={`mt-0.5 text-3xl leading-tight font-bold tracking-tight tabular ${tone.text}`}>
-          {formatPaise(result.amountPaise)}
+    <div className={`w-full min-w-0 overflow-hidden rounded-xl border sm:w-60 sm:shrink-0 ${tone.border}`}>
+      <dl className="space-y-1 bg-surface px-3.5 py-2.5 tabular">
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-sm text-muted">Bill amount</dt>
+          <dd className="text-lg font-semibold text-ink">{formatPaise(result.billPaise)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-sm text-muted">Received</dt>
+          <dd className="text-lg font-semibold text-ink">{formatPaise(result.receivedPaise)}</dd>
+        </div>
+      </dl>
+      <div className={`border-t px-3.5 py-2.5 ${tone.box} ${tone.border}`}>
+        <p className={`flex items-center gap-1.5 text-sm font-semibold ${tone.text}`}>
+          <tone.Icon className="size-4 shrink-0" aria-hidden />
+          {tone.label}
         </p>
-      )}
+        {result.status === "exact" ? (
+          <p className="mt-0.5 text-sm font-medium text-ink-soft">No balance, no change</p>
+        ) : (
+          <p className={`mt-0.5 break-all text-right text-3xl leading-tight font-bold tracking-tight tabular ${tone.text}`}>
+            {formatPaise(result.amountPaise)}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
 interface ChangeSummaryProps {
-  /** Null while no valid bill is entered. */
-  result: ChangeResult | null;
   cashPaise: number;
   onlinePaise: number;
 }
 
 /**
- * Bill vs. payment result for the summary panel. Without a bill it still shows the
- * cash / online split once an online amount is entered; otherwise it renders nothing.
+ * Cash / online split for the summary panel, shown once an online amount is entered.
+ * The bill and balance live in ChangeBadge beside the grand total.
  */
-export function ChangeSummary({ result, cashPaise, onlinePaise }: ChangeSummaryProps) {
-  const tone = result ? TONES[result.status] : null;
-  const hasOnline = onlinePaise > 0;
-
+export function ChangeSummary({ cashPaise, onlinePaise }: ChangeSummaryProps) {
+  if (onlinePaise <= 0) return null;
   return (
-    <div aria-live="polite">
-      {(result || hasOnline) && (
-        <div className="mt-3 overflow-hidden rounded-xl border border-line text-sm tabular">
-          <dl className="space-y-0.5 px-3.5 py-2">
-            {result && <Row label="Bill amount" value={result.billPaise} />}
-            <Row label="Cash received" value={cashPaise} />
-            {hasOnline && (
-              <>
-                <Row label="Online / bank received" value={onlinePaise} />
-                <Row label="Total received" value={cashPaise + onlinePaise} strong />
-              </>
-            )}
-          </dl>
-          {result && tone && (
-            <div className={`flex items-center justify-between gap-3 border-t border-line px-3.5 py-2 ${tone.box}`}>
-              <p className={`flex min-w-0 items-center gap-1.5 font-semibold ${tone.text}`}>
-                <tone.Icon className="size-4 shrink-0" aria-hidden />
-                {changeHeadline(result)}
-              </p>
-              {result.status !== "exact" && (
-                <p className={`shrink-0 text-lg font-bold ${tone.text}`}>{formatPaise(result.amountPaise)}</p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <dl className="mt-3 space-y-0.5 rounded-xl border border-line px-3.5 py-2 text-sm tabular">
+      <Row label="Cash received" value={cashPaise} />
+      <Row label="Online / bank received" value={onlinePaise} />
+      <Row label="Total received" value={cashPaise + onlinePaise} strong />
+    </dl>
   );
 }
 
